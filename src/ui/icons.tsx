@@ -23,10 +23,11 @@ export function ToneMark({ tone }: { tone: EvidenceTone }) {
 
 export function Logo() {
   return (
-    <svg className="logo" viewBox="0 0 32 32" aria-hidden="true">
-      <rect x="3" y="20" width="6" height="8" rx="1" />
-      <rect x="13" y="13" width="6" height="15" rx="1" />
-      <rect x="23" y="5" width="6" height="23" rx="1" />
+    <svg className="logo" viewBox="0 0 36 36" aria-hidden="true">
+      <path d="M4.5 15.5h27l-3 14h-21z" />
+      <path d="M8 10.5h20l2.5 5H5.5z" />
+      <path d="M11.5 5.5h13l2 5h-17z" />
+      <path d="M14 21h8" />
     </svg>
   );
 }

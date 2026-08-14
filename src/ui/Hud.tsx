@@ -11,6 +11,10 @@ export function Hud({ state }: { state: RunState }) {
 
   return (
     <header className="hud">
+      <div className="hud__heading">
+        <p className="eyebrow">Desk instruments</p>
+        <p className="hud__queue-note"><span aria-hidden="true">☞</span> Position updates after every stamp</p>
+      </div>
       <div className="hud__primary">
         <div className="hud__completion">
           <span className="hud__label">Work in place</span>
@@ -20,7 +24,7 @@ export function Hud({ state }: { state: RunState }) {
           </span>
         </div>
         <div className="hud__queue">
-          <span className="hud__label">In queue</span>
+          <span className="hud__label">Open draws</span>
           <span className="hud__value hud__value--sm">{remaining}</span>
         </div>
       </div>
@@ -38,7 +42,7 @@ export function Hud({ state }: { state: RunState }) {
 
       <dl className="hud__stats">
         <div className="stat">
-          <dt className="hud__label">Facility left</dt>
+          <dt className="hud__label">Facility available</dt>
           <dd className="stat__value">{money(state.facility - state.disbursed)}</dd>
         </div>
 
@@ -53,17 +57,21 @@ export function Hud({ state }: { state: RunState }) {
             className="meter meter--exposure"
             role="progressbar"
             aria-label="Cash released ahead of work in place"
-            aria-valuenow={Number(exposure.toFixed(1))}
+            aria-valuenow={Number(Math.max(0, exposure).toFixed(1))}
             aria-valuemin={0}
             aria-valuemax={MAX_EXPOSURE_PCT}
-            aria-valuetext={`${exposure.toFixed(1)} of ${MAX_EXPOSURE_PCT} points before the loan is under-collateralized`}
+            aria-valuetext={
+              exposure <= 0
+                ? `${Math.abs(exposure).toFixed(1)} points behind work in place; no current exposure`
+                : `${exposure.toFixed(1)} of ${MAX_EXPOSURE_PCT} points before the loan is under-collateralized`
+            }
           >
             <div className="meter__fill" style={{ inlineSize: `${exposureRatio * 100}%` }} />
           </div>
         </div>
 
         <div className={`stat ${state.trust <= 30 ? 'stat--danger' : ''}`}>
-          <dt className="hud__label">Goodwill</dt>
+          <dt className="hud__label">Crew goodwill</dt>
           <dd className="stat__value">{Math.round(state.trust)}</dd>
           <div
             className="meter meter--trust"

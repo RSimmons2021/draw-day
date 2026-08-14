@@ -65,7 +65,7 @@ export interface DecisionLog {
   actualPct: number;
 }
 
-export type GameStatus = 'briefing' | 'running' | 'won' | 'lost';
+export type GameStatus = 'running' | 'won' | 'lost';
 
 export type LossReason = 'underwater' | 'walkoff' | 'facility' | 'stalled';
 

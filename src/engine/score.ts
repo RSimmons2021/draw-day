@@ -98,5 +98,5 @@ export function shareText(state: RunState, card: Scorecard): string {
     ? `closed out · $${card.capitalPreserved}K unspent`
     : `${LOSS_COPY[state.lossReason ?? 'stalled'].title.toLowerCase()}`;
 
-  return [`Draw Day ${state.seed}`, headline, '', grid].join('\n');
+  return [`Draw Desk ${state.seed}`, headline, '', grid].join('\n');
 }
