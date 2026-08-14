@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draw Day</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&display=swap');
+
+  :root {
+    --navy: #0F2A43;
+    --navy-2: #163A5C;
+    --grid: #1F4568;
+    --cream: #F4F1E9;
+    --amber: #F5A623;
+    --green: #38B27B;
+    --red: #E8543E;
+    --ink: #0F2A43;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--navy);
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #stage {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* HUD */
+  #hud {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 20px 0;
+    z-index: 10;
+  }
+  .hud-block { text-align: center; }
+  .hud-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: #7FA3C6;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .hud-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.1;
+  }
+  #timerVal { color: var(--amber); }
+  #comboVal { color: var(--green); transition: transform 0.15s; }
+  #comboWrap { opacity: 0; transition: opacity 0.2s; }
+
+  /* Skyline */
+  #skyline {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 130px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 6px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .floor {
+    width: 22px;
+    background: var(--amber);
+    opacity: 0.9;
+    border-radius: 2px 2px 0 0;
+    animation: rise 0.35s cubic-bezier(.2,1.4,.5,1) backwards;
+  }
+  @keyframes rise {
+    from { transform: scaleY(0); opacity: 0; }
+    to { transform: scaleY(1); opacity: 0.9; }
+  }
+
+  /* Card zone */
+  #cardZone {
+    position: relative;
+    flex: 1;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+  }
+
+  .card {
+    position: absolute;
+    width: 260px;
+    height: 320px;
+    background: var(--cream);
+    border-radius: 20px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    cursor: grab;
+    transition: transform 0.28s cubic-bezier(.2,.8,.3,1), opacity 0.28s;
+  }
+  .card.dragging { transition: none; cursor: grabbing; }
+
+  .trade-icon {
+    font-size: 56px;
+    margin-bottom: 18px;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15));
+  }
+
+  .bar-row { width: 100%; margin-bottom: 14px; }
+  .bar-tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8A8672;
+    margin-bottom: 4px;
+  }
+  .bar-track {
+    width: 100%;
+    height: 16px;
+    background: #E3DFD1;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.3s;
+  }
+  .fill-claim { background: #3E7CB8; }
+  .fill-actual { background: var(--green); }
+
+  .stamp {
+    position: absolute;
+    top: 28px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    letter-spacing: 0.05em;
+    padding: 6px 18px;
+    border: 4px solid;
+    border-radius: 8px;
+    transform: rotate(-12deg);
+    opacity: 0;
+    text-transform: uppercase;
+  }
+  .stamp.fund { color: var(--green); border-color: var(--green); left: 20px; }
+  .stamp.hold { color: var(--red); border-color: var(--red); right: 20px; }
+
+  /* Buttons */
+  #controls {
+    display: flex;
+    gap: 60px;
+    padding-bottom: 26px;
+    z-index: 10;
+  }
+  .btn-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+    transition: transform 0.1s;
+  }
+  .btn-circle:active { transform: scale(0.9); }
+  #btnHold { background: var(--red); color: white; }
+  #btnFund { background: var(--green); color: white; }
+
+  /* Hint */
+  #hint {
+    position: absolute;
+    bottom: 108px;
+    color: #7FA3C6;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    z-index: 8;
+    transition: opacity 0.6s;
+  }
+
+  /* Overlays */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15,42,67,0.94);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 20;
+    padding: 24px;
+  }
+  .overlay h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--cream);
+    font-size: 30px;
+    margin: 0 0 6px;
+  }
+  .overlay p {
+    color: #9CB8D4;
+    font-size: 14px;
+    margin: 0 0 26px;
+    max-width: 260px;
+  }
+  .big-score {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 52px;
+    font-weight: 700;
+    color: var(--amber);
+    margin-bottom: 4px;
+  }
+  .best-score { color: #7FA3C6; font-size: 13px; margin-bottom: 26px; }
+  .go-btn {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--amber);
+    color: var(--navy);
+    border: none;
+    padding: 14px 36px;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(245,166,35,0.35);
+  }
+  .go-btn:active { transform: scale(0.96); }
+
+  #floaters { position: absolute; inset: 0; pointer-events: none; z-index: 15; }
+  .floater {
+    position: absolute;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    animation: floatUp 0.9s ease-out forwards;
+  }
+  @keyframes floatUp {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(-60px); opacity: 0; }
+  }
+
+  #stage.shake { animation: shakeAnim 0.3s; }
+  @keyframes shakeAnim {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+  <div id="hud">
+    <div class="hud-block">
+      <div class="hud-label">Funded</div>
+      <div class="hud-value">$<span id="scoreVal">0</span>K</div>
+    </div>
+    <div class="hud-block">
+      <div class="hud-label">Time</div>
+      <div class="hud-value" id="timerVal">45</div>
+    </div>
+    <div class="hud-block" id="comboWrap">
+      <div class="hud-label">Streak</div>
+      <div class="hud-value" id="comboVal">x1</div>
+    </div>
+  </div>
+
+  <div id="hint">swipe or tap ✓ / ✕</div>
+
+  <div id="cardZone"></div>
+
+  <div id="skyline"></div>
+  <div id="floaters"></div>
+
+  <div id="controls">
+    <button class="btn-circle" id="btnHold">✕</button>
+    <button class="btn-circle" id="btnFund">✓</button>
+  </div>
+
+  <div class="overlay" id="startOverlay">
+    <h1>Draw Day</h1>
+    <p>Contractors submit progress. Compare claimed vs verified work. Fund what checks out. Hold what doesn't.</p>
+    <button class="go-btn" id="startBtn">Start shift</button>
+  </div>
+
+  <div class="overlay" id="endOverlay" style="display:none;">
+    <h1>Shift over</h1>
+    <div class="big-score">$<span id="finalScore">0</span>K</div>
+    <div class="best-score" id="bestScoreLine"></div>
+    <button class="go-btn" id="againBtn">Run it back</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const trades = [
+    {icon:'🧱', name:'Foundation'},
+    {icon:'🔌', name:'Electrical'},
+    {icon:'🚿', name:'Plumbing'},
+    {icon:'🪟', name:'Framing'},
+    {icon:'🎨', name:'Finishing'},
+    {icon:'🏗️', name:'Structural'}
+  ];
+
+  const cardZone = document.getElementById('cardZone');
+  const scoreVal = document.getElementById('scoreVal');
+  const timerVal = document.getElementById('timerVal');
+  const comboVal = document.getElementById('comboVal');
+  const comboWrap = document.getElementById('comboWrap');
+  const skyline = document.getElementById('skyline');
+  const floaters = document.getElementById('floaters');
+  const stage = document.getElementById('stage');
+  const hint = document.getElementById('hint');
+  const startOverlay = document.getElementById('startOverlay');
+  const endOverlay = document.getElementById('endOverlay');
+
+  let score = 0, combo = 0, timeLeft = 45, running = false, timerId = null;
+  let currentCard = null, currentData = null, dragging = false, startX = 0, dx = 0;
+
+  function rand(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+  function newDrawData(){
+    const trade = trades[rand(0, trades.length-1)];
+    const matches = Math.random() < 0.5;
+    const claim = rand(35, 95);
+    let actual;
+    if (matches) {
+      actual = Math.max(0, Math.min(100, claim + rand(-6, 6)));
+    } else {
+      const gap = rand(20, 45) * (Math.random() < 0.5 ? -1 : 1);
+      actual = Math.max(0, Math.min(100, claim + gap));
+    }
+    const correctIsFund = Math.abs(claim - actual) <= 10;
+    return { trade, claim, actual, correctIsFund };
+  }
+
+  function spawnCard(){
+    currentData = newDrawData();
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="stamp fund">FUND</div>
+      <div class="stamp hold">HOLD</div>
+      <div class="trade-icon">${currentData.trade.icon}</div>
+      <div class="bar-row">
+        <div class="bar-tag">Claimed</div>
+        <div class="bar-track"><div class="bar-fill fill-claim" style="width:${currentData.claim}%"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-tag">Verified</div>
+        <div class="bar-track"><div class="bar-fill fill-actual" style="width:${currentData.actual}%"></div></div>
+      </div>
+    `;
+    cardZone.appendChild(card);
+    currentCard = card;
+    dx = 0;
+    attachDrag(card);
+  }
+
+  function attachDrag(card){
+    function down(x){
+      dragging = true;
+      startX = x;
+      card.classList.add('dragging');
+    }
+    function move(x){
+      if (!dragging) return;
+      dx = x - startX;
+      const rot = dx / 18;
+      card.style.transform = `translateX(${dx}px) rotate(${rot}deg)`;
+      const fundStamp = card.querySelector('.stamp.fund');
+      const holdStamp = card.querySelector('.stamp.hold');
+      fundStamp.style.opacity = Math.max(0, dx/80);
+      holdStamp.style.opacity = Math.max(0, -dx/80);
+    }
+    function up(){
+      if (!dragging) return;
+      dragging = false;
+      card.classList.remove('dragging');
+      if (dx > 90) decide(true);
+      else if (dx < -90) decide(false);
+      else { card.style.transform = ''; card.querySelector('.stamp.fund').style.opacity=0; card.querySelector('.stamp.hold').style.opacity=0; }
+    }
+    card.addEventListener('mousedown', e => down(e.clientX));
+    window.addEventListener('mousemove', e => move(e.clientX));
+    window.addEventListener('mouseup', up);
+    card.addEventListener('touchstart', e => down(e.touches[0].clientX), {passive:true});
+    card.addEventListener('touchmove', e => move(e.touches[0].clientX), {passive:true});
+    card.addEventListener('touchend', up);
+  }
+
+  function floatText(text, color){
+    const f = document.createElement('div');
+    f.className = 'floater';
+    f.textContent = text;
+    f.style.color = color;
+    f.style.left = (48 + rand(-6,6)) + '%';
+    f.style.top = '38%';
+    floaters.appendChild(f);
+    setTimeout(()=>f.remove(), 900);
+  }
+
+  function addFloor(){
+    if (skyline.children.length > 10) skyline.removeChild(skyline.firstChild);
+    const f = document.createElement('div');
+    f.className = 'floor';
+    const h = 8 + skyline.children.length * 3;
+    f.style.height = h + 'px';
+    skyline.appendChild(f);
+  }
+
+  function decide(fundChoice){
+    if (!running || !currentCard) return;
+    const card = currentCard;
+    currentCard = null;
+    const correct = fundChoice === currentData.correctIsFund;
+
+    const flyX = fundChoice ? 500 : -500;
+    card.style.transform = `translateX(${flyX}px) rotate(${fundChoice ? 30 : -30}deg)`;
+    card.style.opacity = '0';
+    setTimeout(()=>card.remove(), 280);
+
+    if (correct){
+      combo++;
+      const gain = 5 + combo;
+      score += gain;
+      floatText('+$' + gain + 'K', '#38B27B');
+      addFloor();
+      comboWrap.style.opacity = combo > 1 ? '1' : '0';
+      comboVal.textContent = 'x' + combo;
+      comboVal.style.transform = 'scale(1.3)';
+      setTimeout(()=> comboVal.style.transform = 'scale(1)', 150);
+    } else {
+      combo = 0;
+      comboWrap.style.opacity = '0';
+      floatText(fundChoice ? 'Overfunded' : 'False flag', '#E8543E');
+      stage.classList.add('shake');
+      setTimeout(()=> stage.classList.remove('shake'), 300);
+    }
+    scoreVal.textContent = score;
+    hint.style.opacity = '0';
+
+    if (running) setTimeout(spawnCard, 220);
+  }
+
+  document.getElementById('btnFund').addEventListener('click', ()=>decide(true));
+  document.getElementById('btnHold').addEventListener('click', ()=>decide(false));
+  window.addEventListener('keydown', e=>{
+    if (!running) return;
+    if (e.key === 'ArrowRight') decide(true);
+    if (e.key === 'ArrowLeft') decide(false);
+  });
+
+  function tick(){
+    timeLeft--;
+    timerVal.textContent = timeLeft;
+    if (timeLeft <= 0) endGame();
+  }
+
+  function startGame(){
+    score = 0; combo = 0; timeLeft = 45;
+    scoreVal.textContent = 0;
+    timerVal.textContent = 45;
+    comboVal.textContent = 'x1';
+    comboWrap.style.opacity = '0';
+    skyline.innerHTML = '';
+    cardZone.innerHTML = '';
+    startOverlay.style.display = 'none';
+    endOverlay.style.display = 'none';
+    hint.style.opacity = '1';
+    running = true;
+    spawnCard();
+    timerId = setInterval(tick, 1000);
+  }
+
+  function endGame(){
+    running = false;
+    clearInterval(timerId);
+    if (currentCard) { currentCard.remove(); currentCard = null; }
+    const best = Math.max(score, parseInt(localStorage.getItem('drawDayBest') || '0'));
+    localStorage.setItem('drawDayBest', best);
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('bestScoreLine').textContent = 'Best: $' + best + 'K';
+    endOverlay.style.display = 'flex';
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('againBtn').addEventListener('click', startGame);
+})();
+</script>
+
+</body>
+</html>
